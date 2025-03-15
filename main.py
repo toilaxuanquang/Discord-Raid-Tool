@@ -64,11 +64,6 @@ class DiscordBot:
         self.token_file = token_file
         self.spam_interval = spam_interval
         self.spam_duration = None
-        self.spam_messages = [
-            "**XUAN QUANG ON TOP**\n discord.gg/etx",
-            "**HIDDEN GỬI LỜI CHÀO TỚI CÁC BÉ YÊU**\n discord.gg/etx",
-            "**FROM HIDDEN WITH LOVE**\n discord.gg/etx"
-        ]
         self.user_agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
@@ -96,8 +91,42 @@ class DiscordBot:
         self.voice_connections = {}
         self.rate_limit_delays = {}
         self.tokens = self.get_tokens()
+        self.proxies = self.load_proxies()
+        self.spam_messages = self.load_spam_messages()
         self.bot_profiles = {}
         self.guild_members = []
+
+    def load_proxies(self):
+        try:
+            with open("proxies.txt", "r") as f:
+                proxies = [line.strip() for line in f if line.strip()]
+                if not proxies:
+                    purple_gradient("[DEBUG] Proxy file is empty!", center=True)
+                    return []
+                purple_gradient(f"[DEBUG] Loaded proxies: {len(proxies)}", center=True)
+                return proxies
+        except FileNotFoundError:
+            purple_gradient("[DEBUG] File proxies.txt not found!", center=True)
+            return []
+
+    def load_spam_messages(self):
+        try:
+            with open("yapping.txt", "r") as f:
+                messages = [line.strip() for line in f if line.strip()]
+                if not messages:
+                    purple_gradient("[DEBUG] Spam messages file is empty!", center=True)
+                    return []
+                purple_gradient(f"[DEBUG] Loaded spam messages: {len(messages)}", center=True)
+                return messages
+        except FileNotFoundError:
+            purple_gradient("[DEBUG] File yapping.txt not found!", center=True)
+            return []
+
+    def get_random_proxy(self):
+        if not self.proxies:
+            return None
+        proxy = random.choice(self.proxies)
+        return {"http": proxy, "https": proxy}
 
     def check_token(self, token):
         url = "https://discord.com/api/v9/users/@me"
@@ -107,7 +136,7 @@ class DiscordBot:
             'Content-Type': 'application/json'
         }
         try:
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=10)  # Không dùng proxy cho option 5
             if response.status_code == 200:
                 user_data = response.json()
                 username = user_data.get('username', 'Unknown')
@@ -181,7 +210,7 @@ class DiscordBot:
             if last_message_id:
                 params['before'] = last_message_id
             try:
-                response = requests.get(url, headers=headers, params=params, timeout=10)
+                response = requests.get(url, headers=headers, params=params, proxies=self.get_random_proxy(), timeout=10)
                 if response.status_code == 200:
                     time.sleep(1)
                     messages = response.json()
@@ -210,7 +239,7 @@ class DiscordBot:
         }
         data = {"nick": new_nickname}
         try:
-            response = requests.patch(url, headers=headers, json=data, timeout=10)
+            response = requests.patch(url, headers=headers, json=data, proxies=self.get_random_proxy(), timeout=10)
             if response.status_code == 200:
                 purple_gradient(f"[DEBUG] Changed nickname to '{new_nickname}' for {token[:25]}...", center=True)
             elif response.status_code == 429:
@@ -226,7 +255,7 @@ class DiscordBot:
         ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
         ws = websocket.WebSocket()
         try:
-            ws.connect(ws_url)
+            ws.connect(ws_url)  # Không dùng proxy cho WebSocket
             presence = {
                 "status": "online",
                 "afk": False
@@ -270,7 +299,7 @@ class DiscordBot:
         ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
         ws = websocket.WebSocket()
         try:
-            ws.connect(ws_url)
+            ws.connect(ws_url)  # Không dùng proxy cho WebSocket
             valid_statuses = ["online", "dnd", "idle", "invisible"]
             presence = {
                 "status": status if status in valid_statuses else "online",
@@ -335,7 +364,7 @@ class DiscordBot:
         if bio:
             data["bio"] = bio
         try:
-            response = requests.patch(url, headers=headers, json=data, timeout=10)
+            response = requests.patch(url, headers=headers, json=data, proxies=self.get_random_proxy(), timeout=10)
             if response.status_code == 200:
                 purple_gradient(f"[DEBUG] Updated profile for {token[:25]}... Pronoun: {pronoun}, Bio: {bio}", center=True)
                 self.bot_profiles[token] = {"pronoun": pronoun, "bio": bio}
@@ -354,11 +383,6 @@ class DiscordBot:
             'Authorization': token,
             'User-Agent': random.choice(self.user_agents),
             'Content-Type': 'application/json'
-        }
-
-        proxies = {
-            "http": "http://axdokkpn-rotate:etdeptrai@p.webshare.io:80",
-            "https": "http://axdokkpn-rotate:etdeptrai@p.webshare.io:80"
         }
         start_time = time.time()
         
@@ -383,7 +407,7 @@ class DiscordBot:
                     if time.time() < delay:
                         time.sleep(delay - time.time())
 
-                response = requests.post(url, headers=headers, json=data, proxies=proxies, timeout=10)
+                response = requests.post(url, headers=headers, json=data, proxies=self.get_random_proxy(), timeout=10)
                 if response.status_code == 200:
                     purple_gradient(f"[DEBUG] Sent message: {token[:25]}...", center=True)
                 elif response.status_code == 429:
@@ -431,7 +455,7 @@ class DiscordBot:
         ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
         ws = websocket.WebSocket()
         try:
-            ws.connect(ws_url)
+            ws.connect(ws_url)  # Không dùng proxy cho WebSocket
             identify_payload = {
                 "op": 2,
                 "d": {
@@ -583,12 +607,8 @@ class DiscordBot:
             'Content-Type': 'application/json'
         }
         data = {}
-        proxies = {
-            "http": "http://axdokkpn-rotate:etdeptrai@p.webshare.io:80",
-            "https": "http://axdokkpn-rotate:etdeptrai@p.webshare.io:80"
-        }
         try:
-            response = requests.post(url, headers=headers, json=data, proxies=proxies, timeout=10)
+            response = requests.post(url, headers=headers, json=data, proxies=self.get_random_proxy(), timeout=10)
             if response.status_code == 200:
                 purple_gradient(f"[DEBUG] Joined server with invite code {invite_code} using token {token[:25]}...", center=True)
             elif response.status_code == 429:
