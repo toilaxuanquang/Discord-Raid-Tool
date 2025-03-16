@@ -111,7 +111,7 @@ class DiscordBot:
 
     def load_spam_messages(self):
         try:
-            with open("yapping.txt", "r") as f:
+            with open("yapping.txt", "r", encoding="utf-8") as f:
                 messages = [line.strip() for line in f if line.strip()]
                 if not messages:
                     purple_gradient("[DEBUG] Spam messages file is empty!", center=True)
@@ -667,7 +667,7 @@ def print_menu():
                     ║  8  ║ Set status 'online'                ║
                     ║  9  ║ Change pronouns                    ║
                     ║ 10  ║ Set custom status                  ║
-                    ║ 11  ║ Join server                        ║
+                    ║ 11  ║ Fast Joiner                        ║
                     ╚═════╩════════════════════════════════════╝
     """)
 
